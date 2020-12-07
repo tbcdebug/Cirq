@@ -12,6 +12,9 @@ import networkx as nx
 import cirq
 import cirq.contrib.routing as ccr
 
+from olsq.olsq_cirq import OLSQ_cirq
+from olsq.device import qcdevice
+
 
 def generate_model_circuit(
     num_qubits: int, depth: int, *, random_state: 'cirq.RANDOM_STATE_OR_SEED_LIKE' = None
@@ -263,6 +266,7 @@ def compile_circuit(
             compiled_circuit.append(cirq.X(qubit))
             parity_map[qubit] = parity_qubit
 
+    """
     # Swap Mapping (Routing). Ensure the gates can actually operate on the
     # target qubits given our topology.
     if router is None and routing_algo_name is None:
@@ -291,6 +295,13 @@ def compile_circuit(
     # Replace the PermutationGates with regular gates, so we don't proliferate
     # the routing implementation details to the compiler and the device itself.
     SwapPermutationReplacer().optimize_circuit(routed_circuit)
+
+    """
+    lsqc_solver = OLSQ_cirq("depth", "normal")
+    lsqc_solver.setdevicegraph(device_graph)
+    lsqc_solver.setprogram(circuit)
+    routed_circuit, mapping = lsqc_solver.solve()
+
 
     if not compiler:
         return CompilationResult(circuit=routed_circuit, mapping=mapping, parity_map=parity_map)
